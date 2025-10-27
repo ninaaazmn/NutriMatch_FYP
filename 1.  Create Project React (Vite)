@@ -1,0 +1,42 @@
+(IN CMD)
+C:\Users\Administrator>cd C:\Users\Administrator
+
+C:\Users\Administrator>npm create vite@latest nutrimatch-frontend -- --template react
+Need to install the following packages:
+create-vite@8.0.2
+Ok to proceed? (y) y
+
+
+> npx
+> create-vite nutrimatch-frontend --template react
+
+|
+o  Use rolldown-vite (Experimental)?:
+|  No
+|
+o  Install with npm and start now?
+|  Yes
+|
+o  Scaffolding project in C:\Users\Administrator\nutrimatch-frontend...
+|
+o  Installing dependencies with npm...
+
+added 153 packages, and audited 154 packages in 18s
+
+32 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+|
+o  Starting dev server...
+
+> nutrimatch-frontend@0.0.0 dev
+> vite
+
+
+  VITE v7.1.12  ready in 822 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+
