@@ -226,38 +226,98 @@ body {
   margin-top: 15px;
 }
 .track-meal-btn:hover { background-color: #3b8c3c; }
+
+/* ⭐ UPDATED RECOMMENDED SECTION — NOW SAME STYLE AS SAVED RECIPE ⭐ */
+/* ⭐ RECOMMENDED RECIPES — EXACT STYLE FROM SAVED RECIPES ⭐ */
 .recommend-section {
   max-width: 1200px;
   margin: 30px auto;
+  padding: 40px;
   background-color: #ffffff;
   box-shadow: 0 6px 15px rgba(0,0,0,0.12);
   border-radius: 15px;
-  padding: 40px;
 }
+  .recommend-section h2 {
+  font-size: 1.4em;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+
+/* SAME GRID */
 .recipe-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   column-gap: 25px;
   row-gap: 25px;
 }
+
+/* SAME CARD STYLE AS PROFILE PAGE SAVED */
 .recipe-card {
   border: 1px solid #eee;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   transition: transform 0.2s ease;
 }
-.recipe-card:hover { transform: translateY(-3px); }
+
+.recipe-card:hover {
+  transform: translateY(-3px);
+}
+
+/* SAME IMAGE STYLE */
 .recipe-card img {
   width: 100%;
   height: 180px;
   object-fit: cover;
 }
-.recipe-content { padding: 20px; }
-.recipe-btns { display: flex; gap: 10px; }
-.btn-view { background-color: #e6ffe6; color: #3b8c3c; }
-.btn-save { background-color: #ffe6e6; color: #c53030; }
+
+/* SAME CONTENT STYLE */
+.recipe-content {
+  padding: 20px;
+}
+
+.recipe-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.05em;
+}
+
+.recipe-content p {
+  margin: 0 0 12px 0;
+  font-size: 0.9em;
+  color: #555;
+}
+
+/* SAME BUTTON LAYOUT */
+.recipe-btns {
+  display: flex;
+  gap: 10px;
+}
+
+/* SAME BUTTON COLORS */
+.btn-view {
+  background-color: #e6ffe6;
+  color: #3b8c3c;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-save {
+  background-color: #ffe6e6;
+  color: #c53030;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 `;
 
 export default function TestDashboard() {
@@ -395,7 +455,7 @@ export default function TestDashboard() {
         </div>
       </div>
 
-      {/* Recommended Recipes */}
+      {/* ⭐ UPDATED Recommended Recipes (STYLE SAME AS SAVED) ⭐ */}
       <section className="recommend-section">
         <h2>Recommended Recipes</h2>
         <div className="recipe-grid">
@@ -424,5 +484,7 @@ export default function TestDashboard() {
     </>
   );
 }
+
+
 
 
