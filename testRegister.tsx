@@ -443,6 +443,7 @@ export default function TestRegister() {
 
   const [recommendedCalories, setRecommendedCalories] = useState<number>(1900);
 
+  
   // =========================
   // PASSWORD LIVE VALIDATION
   // =========================
@@ -450,6 +451,7 @@ export default function TestRegister() {
     length: formData.password.length >= 8,
     special: /[!@#$%^&*(),.?":{}|<>]/.test(formData.password),
   };
+
 
   const confirmMatch =
     formData.confirmPassword.length > 0 &&
@@ -522,21 +524,39 @@ export default function TestRegister() {
   // -------------------------
   // STEP 3 VALIDATION + SUBMIT
   // -------------------------
-  const handleDone = () => {
-    if (
-      !formData.gender ||
-      !formData.goal ||
-      !formData.height.trim() ||
-      !formData.weight.trim() ||
-      !formData.activity
-    ) {
-      alert("Please complete your health goals first.");
-      return;
-    }
+ const handleDone = async () => {
+  if (
+    !formData.gender ||
+    !formData.goal ||
+    !formData.height.trim() ||
+    !formData.weight.trim() ||
+    !formData.activity
+  ) {
+    alert("Please complete your health goals first.");
+    return;
+  }
 
-    console.log("✅ Final register data:", formData);
-    router.visit("/test-login");
-  };
+  // ⭐ Combine First + Last Name
+  const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+
+const payload = {
+    name: fullName,
+    email: formData.email,
+    password: formData.password,
+    gender: formData.gender,
+    weight: formData.weight,
+    height: formData.height,
+    activity_level: formData.activity,
+    primary_goal: formData.goal,
+    diet: formData.diet,
+    preferences: JSON.stringify(formData.preferences),
+    allergies: JSON.stringify(formData.allergies),
+    calorie_target: formData.calorieTarget,
+};
+
+
+  await router.post("/register-save", payload);
+};
 
   // =========================
   // CALORIE RECOMMENDATION
