@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, router } from "@inertiajs/react"; // ✅ for Laravel navigation
+import { usePage } from "@inertiajs/react";
 
-// ===============================================
-// GAYA CSS-IN-JS (DIBETULKAN)
-// ===============================================
+// ====================================================
+// CSS-IN-JS (clean + same design)
+// ====================================================
 const loginStyles = `
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: 'Poppins', Arial, sans-serif;
   background: linear-gradient(to bottom right, #b0f0e0, #2af598);
   color: #333;
-}
-#root {
-  min-height: 100vh;
 }
 .login-container {
   min-height: 100vh;
@@ -23,7 +21,7 @@ body {
 }
 .login-box {
   position: relative;
-  background-color: #fff;
+  background: #fff;
   border-radius: 15px;
   padding: 40px;
   width: 100%;
@@ -64,7 +62,7 @@ body {
   gap: 15px;
 }
 .input-wrapper { position: relative; width: 100%; }
-input[type="email"], input[type="password"] {
+input[type="email"], input[type="password"], input[type="text"] {
   width: 100%;
   padding: 12px;
   border: 1px solid #ccc;
@@ -135,11 +133,9 @@ input:focus {
 .footer-links a:hover { text-decoration: underline; }
 `;
 
-export default function Login() {
+export default function TestLogin() {
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate(); // ✅ untuk redirect ke dashboard
 
-  // Inject gaya
   useEffect(() => {
     if (!document.getElementById("login-styles")) {
       const styleTag = document.createElement("style");
@@ -147,34 +143,53 @@ export default function Login() {
       styleTag.innerHTML = loginStyles;
       document.head.appendChild(styleTag);
     }
-    document.body.style.margin = "0";
-    document.body.style.fontFamily = "'Poppins', Arial, sans-serif";
   }, []);
+  const { errors } = usePage().props as any;
 
-  const handleLogin = (e) => {
+
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // ✅ Tambah logic login sebenar nanti
-    navigate("/dashboard"); // Redirect ke dashboard
+
+    const email = (e.target as any).email.value;
+    const password = (e.target as any).password.value;
+
+    router.post("/login-check", { email, password });
   };
+
 
   return (
     <div className="login-container">
       <div className="login-box">
-        <Link to="/" className="back-home">← Back to Home</Link>
+        <Link href="/test-home" className="back-home">← Back to Home</Link>
         <img src="/NutriMatch Logo.png" alt="NutriMatch Logo" className="logo-top" />
         <h2>Sign In</h2>
 
         <form className="form-content" onSubmit={handleLogin}>
           <div className="input-wrapper">
-            <input type="email" placeholder="Email" required />
+            <input name="email"
+              type="email"
+              placeholder="Email"
+              required />
+            {errors?.email && (
+              <div style={{ color: "red", fontSize: "0.9em", marginTop: "4px" }}>
+                {errors.email}
+              </div>
+            )}
           </div>
 
           <div className="input-wrapper">
             <input
               type={showPassword ? "text" : "password"}
+              name="password"
               placeholder="Password"
               required
             />
+            {errors?.password && (
+              <div style={{ color: "red", fontSize: "0.9em", marginTop: "4px" }}>
+                {errors.password}
+              </div>
+            )}
+
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="toggle-icon"
@@ -199,7 +214,6 @@ export default function Login() {
               )}
             </svg>
           </div>
-
           <div className="form-options">
             <label>
               <input type="checkbox" /> Remember me
@@ -207,14 +221,12 @@ export default function Login() {
             <a href="#">Forget Password</a>
           </div>
 
-          <button type="submit" className="login-btn">
-            Login
-          </button>
+          <button type="submit" className="login-btn">Login</button>
         </form>
 
         <div className="footer-links">
           <p>
-            Don’t have an account? <Link to="/register">Register</Link>
+            Don’t have an account? <Link href="/register">Register</Link>
           </p>
         </div>
       </div>
