@@ -11,19 +11,18 @@ use App\Http\Controllers\RegisterController;
 use App\Models\Recipe;
 
 Route::get('/', function () {
-    return Inertia::render('welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-    ]);
+    return Inertia::render('testHome');
 })->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
-});
+
 
 Route::get('/test-dashboard', function () {
-    return Inertia::render('testDashboard');
+    $user = auth()->user();
+    $savedRecipes = $user ? $user->savedRecipes()->get() : [];
+    return Inertia::render('testDashboard', [
+        'savedRecipes' => $savedRecipes,
+        'user' => $user
+    ]);
 });
 
 Route::get('/test-home', function () {
@@ -48,13 +47,24 @@ Route::get('/test-profile', function () {
     $userData = $user->toArray();
     $userData['cuisine'] = $user->preferences; 
     
+    \Illuminate\Support\Facades\Log::info('Web.php test-profile data:', [
+        'preferences_type' => gettype($user->preferences),
+        'preferences_value' => $user->preferences,
+        'cuisine_in_userData' => $userData['cuisine']
+    ]); 
+    
+    $savedRecipes = $user->savedRecipes()->orderByPivot('created_at', 'desc')->get();
+
     return Inertia::render('testProfile', [
-        'user' => $userData
+        'user' => $userData,
+        'savedRecipes' => $savedRecipes
     ]);
 });
 
 Route::post('/test-profile/update', [ProfileController::class, 'update'])->name('profile.update');
 Route::post('/test-profile/preferences', [ProfileController::class, 'updatePreferences'])->name('profile.preferences.update');
+Route::post('/user/profile-photo', [ProfileController::class, 'updatePhoto'])->name('user.profile-photo.update');
+Route::post('/recipes/toggle-save', [RecipeController::class, 'toggleSave'])->name('recipes.toggle-save');
 
 Route::get('/test-register', function () {
     return Inertia::render('testRegister');
@@ -64,24 +74,15 @@ Route::get('/test-register', function () {
 
 
 
-Route::get('/search', function () {
-    $q = request('q');
-
-    return DB::table('recipes')
-    ->where('title', 'LIKE', "%$q%")
-    ->orWhere('tags', 'LIKE', "%$q%")
-    ->get();
-
-
-    return response()->json($recipes);
-});
+Route::get('/search', [RecipeController::class, 'search'])->name('recipes.search');
 Route::get('/search-suggest', function () {
     $q = request('q');
 
     return DB::table('recipes')
-        ->where('title', 'LIKE', "%$q%")
+        ->where('recipe_name', 'LIKE', "%$q%")
         ->limit(5)
-        ->pluck('title'); // return only list of titles
+        ->select('recipe_name', 'image_url')
+        ->get();
 });
 
 Route::get('/recipes', function () {
