@@ -8,10 +8,15 @@ const profileStyles = `
 /* Background */
 body {
   margin: 0;
-  font-family: 'Poppins', Arial, sans-serif;
+  font-family: 'Helvetica', Arial, sans-serif;
   background: linear-gradient(to bottom right, #b0f0e0, #2af598);
+  background-attachment: fixed; /* Ensure green stays connected */
   color: #333;
   overflow-x: hidden;
+}
+html {
+  background: linear-gradient(to bottom right, #b0f0e0, #2af598);
+  background-attachment: fixed;
 }
 #root {
   min-height: 100vh;
@@ -25,7 +30,8 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 18px 40px;
-  background-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.9); /* Glassmorphism */
+  backdrop-filter: blur(10px);
   box-shadow: 0 6px 15px rgba(0,0,0,0.12);
   border-radius: 15px;
   box-sizing: border-box;
@@ -347,6 +353,15 @@ body {
   box-shadow: 0 5px 15px rgba(0,0,0,0.1);
   max-width: 400px;
 }
+.logout-modal-box {
+  background: white;
+  padding: 40px 50px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  max-width: 400px;
+  width: 90%;
+}
 .modal-buttons {
   display: flex;
   gap: 15px;
@@ -387,10 +402,26 @@ body {
 .saved-recipe-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  column-gap: 25px;
-  row-gap: 25px;
+  gap: 25px;
+  justify-content: center;
+}
+.saved-recipe-grid::-webkit-scrollbar {
+  height: 8px;
+}
+.saved-recipe-grid::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+.saved-recipe-grid::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+.saved-recipe-grid::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
 }
 .saved-recipe-card {
+  min-width: 300px; /* Fixed width for cards */
+  flex: 0 0 auto;   /* Prevent shrinking */
   border: 1px solid #eee;
   border-radius: 10px;
   overflow: hidden;
@@ -432,6 +463,16 @@ body {
   font-weight: 600;
   cursor: pointer;
 }
+.btn-save {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+}
 .btn-remove {
   background-color: #ffe6e6;
   color: #c53030;
@@ -442,13 +483,57 @@ body {
   font-weight: 600;
   cursor: pointer;
 }
+
+/* NOTIFICATION */
+.notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ffffff;
+  color: #333;
+  padding: 15px 25px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 3000;
+  animation: slideIn 0.3s ease-out;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  font-family: 'Arial', sans-serif;
+}
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
 `;
 
 // ===============================================
 // COMPONENTS
 // ===============================================
-const ProfileFormView: React.FC<{ user: any }> = ({ user }) => {
-  const { data, setData, post, processing, errors } = useForm({
+
+const Notification: React.FC<{ message: string; onClose: () => void }> = ({ message, onClose }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="notification">
+      ✅ {message}
+    </div>
+  );
+};
+
+interface ProfileFormData {
+  name: string;
+  email: string;
+  password: string;
+}
+
+const ProfileFormView: React.FC<{ user: any; setNotification: (msg: string) => void }> = ({ user, setNotification }) => {
+  const { data, setData, post, processing, errors } = useForm<ProfileFormData>({
     name: user.name || '',
     email: user.email || '',
     password: '',
@@ -456,13 +541,65 @@ const ProfileFormView: React.FC<{ user: any }> = ({ user }) => {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    post('/test-profile/update');
+    post('/test-profile/update', {
+      onSuccess: () => setNotification("Profile updated successfully!"),
+      onError: () => setNotification("Failed to update profile.")
+    });
+  };
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    router.post('/user/profile-photo', formData, {
+      forceFormData: true,
+      preserveScroll: true,
+      onSuccess: () => {
+        setNotification("Profile photo updated successfully!");
+      },
+      onError: () => {
+        setNotification("Failed to update profile photo.");
+      }
+    });
   };
 
   return (
     <form className="profile-form" onSubmit={submit}>
       <div className="profile-form-header">
-        <img src={user.profile_photo_url || "https://via.placeholder.com/50"} alt="Avatar" />
+        <div
+          style={{ position: 'relative', cursor: 'pointer', display: 'inline-block' }}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <img
+            src={user.profile_photo_url || user.profile_photo_path ? `/storage/${user.profile_photo_path}` : "https://via.placeholder.com/50"}
+            alt="Avatar"
+            style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' }}
+          />
+          <div style={{
+            position: 'absolute',
+            bottom: -5,
+            right: -5,
+            background: 'white',
+            borderRadius: '50%',
+            padding: '2px',
+            fontSize: '12px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}>
+            📷
+          </div>
+        </div>
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          accept="image/*"
+          onChange={handlePhotoUpload}
+        />
         <span className="profile-name">{user.name}</span>
       </div>
 
@@ -502,8 +639,15 @@ const ProfileFormView: React.FC<{ user: any }> = ({ user }) => {
 };
 
 // === EDIT PREFERENCES – SAME BOX STYLE AS REGISTER ===
-const EditPreferencesView: React.FC<{ user: any }> = ({ user }) => {
-  const { data, setData, post, processing } = useForm({
+
+interface PreferencesFormData {
+  diet: string;
+  allergies: string[];
+  cuisine: string[];
+}
+
+const EditPreferencesView: React.FC<{ user: any; setNotification: (msg: string) => void }> = ({ user, setNotification }) => {
+  const { data, setData, post, processing, errors } = useForm<PreferencesFormData>({
     diet: user.diet || "No specific diet",
     allergies: user.allergies || [],
     cuisine: user.cuisine || []
@@ -524,7 +668,13 @@ const EditPreferencesView: React.FC<{ user: any }> = ({ user }) => {
   };
 
   const submit = () => {
-    post('/test-profile/preferences');
+    post('/test-profile/preferences', {
+      onSuccess: () => setNotification("Preferences updated successfully!"),
+      onError: (err) => {
+        console.error("Preference update errors:", err);
+        setNotification("Failed to update preferences. Check console.");
+      }
+    });
   };
 
   return (
@@ -631,7 +781,7 @@ type LogoutModalProps = {
 
 const LogoutModal: React.FC<LogoutModalProps> = ({ onClose, onConfirm }) => (
   <div className="modal-overlay" onClick={onClose}>
-    <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+    <div className="logout-modal-box" onClick={(e) => e.stopPropagation()}>
       <h2>Are you sure you want to log out?</h2>
       <div className="modal-buttons">
         <button className="modal-btn-cancel" onClick={onClose}>
@@ -645,6 +795,7 @@ const LogoutModal: React.FC<LogoutModalProps> = ({ onClose, onConfirm }) => (
   </div>
 );
 
+
 // ===============================================
 // MAIN COMPONENT
 // ===============================================
@@ -652,11 +803,25 @@ type ActiveView = "profile" | "preferences" | "history";
 
 interface TestProfileProps {
   user: any;
+  savedRecipes: any[];
 }
 
-const TestProfile: React.FC<TestProfileProps> = ({ user }) => {
+const TestProfile: React.FC<TestProfileProps> = ({ user, savedRecipes }) => {
   const [activeView, setActiveView] = useState<ActiveView>("profile");
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [suggestions, setSuggestions] = useState<{ recipe_name: string; image_url: string }[]>([]);
+  const [showSuggest, setShowSuggest] = useState(false);
+  const [recommended, setRecommended] = useState([]);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/recommended")
+      .then(res => res.json())
+      .then(data => setRecommended(data));
+  }, []);
 
   useEffect(() => {
     if (!document.getElementById("profile-styles")) {
@@ -670,12 +835,11 @@ const TestProfile: React.FC<TestProfileProps> = ({ user }) => {
   const renderView = () => {
     switch (activeView) {
       case "preferences":
-
-        return <EditPreferencesView user={user} />;
+        return <EditPreferencesView user={user} setNotification={setNotification} />;
       case "history":
         return <HistoryView />;
       default:
-        return <ProfileFormView user={user} />;
+        return <ProfileFormView user={user} setNotification={setNotification} />;
     }
   };
 
@@ -684,8 +848,91 @@ const TestProfile: React.FC<TestProfileProps> = ({ user }) => {
     router.visit("/test-home");
   };
 
+  const toggleSave = (recipeId: number) => {
+    const isCurrentlySaved = isSaved(recipeId);
+    router.post('/recipes/toggle-save', { recipe_id: recipeId }, {
+      preserveScroll: true,
+      onSuccess: () => {
+        if (!isCurrentlySaved) {
+          setNotification("Recipe successfully added!");
+        } else {
+          setNotification("Recipe successfully removed!");
+        }
+      }
+    });
+  };
+
+  const nextSlide = () => {
+    if (currentSlide + 3 < savedRecipes.length) {
+      setCurrentSlide(prev => prev + 1);
+    }
+  };
+
+  const prevSlide = () => {
+    if (currentSlide > 0) {
+      setCurrentSlide(prev => prev - 1);
+    }
+  };
+
+  const isSaved = (recipeId: number) => {
+    return savedRecipes.some(r => r.id === recipeId);
+  };
+
+  const handleTyping = async (e: any) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    if (value.length < 1) {
+      setSuggestions([]);
+      return;
+    }
+
+    const response = await fetch(`/search-suggest?q=${value}`);
+    const data = await response.json();
+    setSuggestions(data);
+  };
+
+  const selectSuggestion = (text: string) => {
+    setSearchQuery(text);
+    setShowSuggest(false);
+    handleSearch(text);
+  };
+
+  const handleSearch = async (overrideQuery?: string) => {
+    const q = overrideQuery || searchQuery;
+    if (!q.trim()) return;
+    const response = await fetch(`/search?q=${encodeURIComponent(q)}`);
+    const data = await response.json();
+    setSearchResults(data);
+  };
+
+
+
+  const searchRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSuggest(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+
+
   return (
     <>
+      {notification && (
+        <Notification
+          message={notification}
+          onClose={() => setNotification(null)}
+        />
+      )}
       <nav className="profile-navbar">
         <Link href="/test-home" className="profile-logo">
           <img src="/NutriMatch Logo.png" alt="NutriMatch" />
@@ -693,10 +940,65 @@ const TestProfile: React.FC<TestProfileProps> = ({ user }) => {
         </Link>
 
         <div className="search-container">
-          <div className="search-bar">
-            <input type="text" placeholder="Search recipes..." />
+          <div ref={searchRef} style={{ position: "relative", display: "flex", alignItems: "center" }}>
+            <div className="search-bar">
+              <input
+                type="text"
+                placeholder="Search recipes..."
+                value={searchQuery}
+                onChange={handleTyping}
+                onFocus={() => setShowSuggest(true)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+            </div>
+            <button className="search-btn" onClick={() => handleSearch()}>Search</button>
+
+            {/* 🔽 Suggestion Dropdown */}
+            {showSuggest && suggestions.length > 0 && (
+              <ul
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: "0",
+                  width: "100%",
+                  background: "white",
+                  border: "1px solid #ddd",
+                  borderRadius: "8px",
+                  listStyle: "none",
+                  padding: "0",
+                  zIndex: 50,
+                  boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                  overflow: "hidden",
+                  marginTop: "5px"
+                }}
+              >
+                {suggestions.map((s, i) => (
+                  <li
+                    key={i}
+                    onClick={() => selectSuggestion(s.recipe_name)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      padding: "10px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid #f1f1f1",
+                      gap: "10px",
+                      transition: "background 0.2s"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f9f9f9")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
+                  >
+                    <img
+                      src={s.image_url || "https://via.placeholder.com/40"}
+                      alt={s.recipe_name}
+                      style={{ width: "40px", height: "40px", borderRadius: "4px", objectFit: "cover" }}
+                    />
+                    <span style={{ fontWeight: 500, color: "#333" }}>{s.recipe_name}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-          <button className="search-btn">Search</button>
         </div>
 
         <div className="profile-nav-links">
@@ -753,40 +1055,154 @@ const TestProfile: React.FC<TestProfileProps> = ({ user }) => {
         <main className="profile-content">{renderView()}</main>
       </div>
 
-      {/* Saved Recipes – same feel as Recommended Recipes */}
+      {/* Search Results Section */}
+      {/* Search Results Modal */}
+      {searchResults.length > 0 && (
+        <div className="modal-overlay" onClick={() => setSearchResults([])}>
+          <div className="modal-box" style={{ width: 'auto', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0 }}>Search Results</h2>
+              <button
+                onClick={() => setSearchResults([])}
+                style={{ background: 'none', border: 'none', fontSize: '1.5em', cursor: 'pointer', color: '#666' }}
+              >
+                ✖
+              </button>
+            </div>
+
+            <div className="saved-recipe-grid" style={{ gridTemplateColumns: `repeat(${Math.min(searchResults.length, 3)}, 1fr)` }}>
+              {searchResults.map((r: any, i) => (
+                <div key={i} className="saved-recipe-card">
+                  <img
+                    src={r.image_url || "https://via.placeholder.com/400x200/ccc/888?text=Food"}
+                    alt={r.recipe_name}
+                  />
+                  <div className="saved-recipe-content">
+                    <h3>{r.recipe_name}</h3>
+                    <p>{r.category} • {r.nutrition_calories} kcal</p>
+                    <div className="recipe-card-buttons">
+                      <button className="btn-view">View Recipe</button>
+                      <button
+                        className={isSaved(r.id) ? "btn-remove" : "btn-save"}
+                        onClick={() => toggleSave(r.id)}
+                      >
+                        {isSaved(r.id) ? 'Unsave' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recommended Recipes Section */}
       <section className="saved-recipe-section">
-        <h2>Saved Recipes</h2>
+        <h2>Recommended for You</h2>
         <div className="saved-recipe-grid">
-          {[
-            {
-              title: "Fried Rice",
-              desc: "Hearty stir-fry with rice, eggs, and veggies.",
-              img: "https://via.placeholder.com/400x200/ccc/888?text=Fried+Rice",
-            },
-            {
-              title: "Club Sandwich",
-              desc: "Layered sandwich with lettuce & tomato.",
-              img: "https://via.placeholder.com/400x200/ddd/888?text=Club+Sandwich",
-            },
-            {
-              title: "Fruit Yogurt Parfait",
-              desc: "Light and creamy yogurt dessert.",
-              img: "https://via.placeholder.com/400x200/eee/888?text=Yogurt+Parfait",
-            },
-          ].map((r, i) => (
+          {recommended.map((r: any, i) => (
             <div key={i} className="saved-recipe-card">
-              <img src={r.img} alt={r.title} />
+              <img
+                src={r.image_url || "https://via.placeholder.com/400x200/ccc/888?text=Food"}
+                alt={r.recipe_name}
+              />
               <div className="saved-recipe-content">
-                <h3>{r.title}</h3>
-                <p>{r.desc}</p>
+                <h3>{r.recipe_name}</h3>
+                <p>{r.category} • {r.nutrition_calories} kcal</p>
                 <div className="recipe-card-buttons">
                   <button className="btn-view">View Recipe</button>
-                  <button className="btn-remove">Remove</button>
+                  <button
+                    className={isSaved(r.id) ? "btn-remove" : "btn-save"}
+                    onClick={() => toggleSave(r.id)}
+                  >
+                    {isSaved(r.id) ? 'Unsave' : 'Save'}
+                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Saved Recipes */}
+      <section className="saved-recipe-section">
+        <h2>Saved Recipes</h2>
+        {savedRecipes.length === 0 ? (
+          <p style={{ color: '#666', fontStyle: 'italic' }}>You haven't saved any recipes yet.</p>
+        ) : (
+          <div className="carousel-container" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {savedRecipes.length > 3 && (
+              <button
+                onClick={prevSlide}
+                disabled={currentSlide === 0}
+                style={{
+                  background: '#77DD77',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  cursor: currentSlide === 0 ? 'not-allowed' : 'pointer',
+                  opacity: currentSlide === 0 ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.2em',
+                  fontWeight: 'bold'
+                }}
+              >
+                &lt;
+              </button>
+            )}
+
+            <div className="saved-recipe-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '25px',
+              flexGrow: 1,
+              overflow: 'hidden' // Hide scrollbar for carousel look
+            }}>
+              {savedRecipes.slice(currentSlide, currentSlide + 3).map((r, i) => (
+                <div key={i} className="saved-recipe-card">
+                  <img src={r.image_url || "https://via.placeholder.com/400x200/ccc/888?text=Food"} alt={r.recipe_name} />
+                  <div className="saved-recipe-content">
+                    <h3>{r.recipe_name}</h3>
+                    <p>{r.category} • {r.nutrition_calories} kcal</p>
+                    <div className="recipe-card-buttons">
+                      <button className="btn-view">View Recipe</button>
+                      <button className="btn-remove" onClick={() => toggleSave(r.id)}>Remove</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {savedRecipes.length > 3 && (
+              <button
+                onClick={nextSlide}
+                disabled={currentSlide + 3 >= savedRecipes.length}
+                style={{
+                  background: '#77DD77',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  cursor: currentSlide + 3 >= savedRecipes.length ? 'not-allowed' : 'pointer',
+                  opacity: currentSlide + 3 >= savedRecipes.length ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.2em',
+                  fontWeight: 'bold'
+                }}
+              >
+                &gt;
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
       {showLogoutModal && (
@@ -797,7 +1213,8 @@ const TestProfile: React.FC<TestProfileProps> = ({ user }) => {
       )}
     </>
   );
-
 };
 
 export default TestProfile;
+
+
