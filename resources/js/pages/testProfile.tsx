@@ -215,7 +215,10 @@ html {
 
 /* PROFILE FORM */
 .profile-form {
-  max-width: 500px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 .profile-form-header {
   display: flex;
@@ -631,7 +634,7 @@ const ProfileFormView: React.FC<{ user: any; setNotification: (msg: string) => v
         />
         {errors.password && <div style={{ color: 'red', fontSize: '0.8em' }}>{errors.password}</div>}
       </div>
-      <button type="submit" className="save-btn" disabled={processing}>
+      <button type="submit" className="save-btn" disabled={processing} style={{ marginTop: '20px', width: 'auto', alignSelf: 'flex-start' }}>
         {processing ? 'Saving...' : 'Save changes'}
       </button>
     </form>
@@ -1214,7 +1217,3 @@ const TestProfile: React.FC<TestProfileProps> = ({ user, savedRecipes }) => {
     </>
   );
 };
-
-export default TestProfile;
-
-
